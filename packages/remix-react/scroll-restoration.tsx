@@ -44,7 +44,7 @@ export function ScrollRestoration({ nonce = undefined }: { nonce?: string }) {
       let positions = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || "{}");
       let storedY = positions[window.history.state.key];
       if (typeof storedY === "number") {
-        window.scrollTo(0, storedY);
+        // window.scrollTo(0, storedY);
       }
     } catch (error) {
       console.error(error);
@@ -70,6 +70,13 @@ function useScrollRestoration() {
   let transition = useTransition();
 
   let wasSubmissionRef = React.useRef(false);
+  let wasPopEventRef = React.useRef(false);
+
+  React.useEffect(() => {
+    window.onpopstate = (e) => {
+      wasPopEventRef.current = true;
+    };
+  }, []);
 
   React.useEffect(() => {
     if (transition.submission) {
@@ -85,6 +92,7 @@ function useScrollRestoration() {
 
   useBeforeUnload(
     React.useCallback(() => {
+      window.onpopstate = null;
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
     }, [])
   );
@@ -102,7 +110,8 @@ function useScrollRestoration() {
       let y = positions[location.key];
 
       // been here before, scroll to it
-      if (y != undefined) {
+      if (y != undefined && wasPopEventRef.current) {
+        wasPopEventRef.current = false;
         window.scrollTo(0, y);
         return;
       }
